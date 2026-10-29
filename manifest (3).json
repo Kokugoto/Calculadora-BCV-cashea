@@ -1,12 +1,10 @@
 {
+  "name": "Calculadora BCV y Cashea",
+  "short_name": "Calculadora",
+  "start_url": "/Calculadora-BCV-cashea/index.html",
+  "scope": "/Calculadora-BCV-cashea/",
+  "display": "standalone",
   "background_color": "#0f172a",
-  "description": "Calculadora-BCV-cashea",
-  "dir": "ltr",
-  "display": "fullscreen",
-  "name": "Calculadora-BCV-cashea",
-  "orientation": "any",
-  "scope": "/",
-  "short_name": "Calculadora-BCV-cashea",
-  "start_url": "./index.html",
-  "theme_color": "#0f172a"
+  "theme_color": "#0f172a",
+  "icons": []
 }
