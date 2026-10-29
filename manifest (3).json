@@ -1,0 +1,12 @@
+{
+  "background_color": "#0f172a",
+  "description": "Calculadora-BCV-cashea",
+  "dir": "ltr",
+  "display": "fullscreen",
+  "name": "Calculadora-BCV-cashea",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Calculadora-BCV-cashea",
+  "start_url": "./index.html",
+  "theme_color": "#0f172a"
+}
