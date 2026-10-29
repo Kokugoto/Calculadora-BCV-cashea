@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="es" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calculadora BCV & Cashea</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Touch feedback & smooth interaction */
+        * {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            touch-action: manipulation;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .btn-active:active {
+            transform: scale(0.94);
+            filter: brightness(0.92);
+            transition: transform 0.05s ease;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #8883;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between max-w-md mx-auto relative overflow-hidden bg-black text-white dark:bg-black dark:text-white transition-colors duration-300 select-none">
+
+    <!-- Top Header -->
+    <header class="p-3 pb-1 flex justify-between items-center z-10 pt-4 gap-1">
+        <!-- Vertical Column for Theme & Sound Buttons + App Tabs -->
+        <div class="flex items-center gap-2">
+            <!-- Vertical stack for Theme Switcher & Sound Switcher -->
+            <div class="flex flex-col gap-1.5">
+                <!-- Theme Toggle Button (Sun/Moon) -->
+                <button id="theme-toggle-btn" onclick="toggleTheme()" class="p-2 rounded-xl bg-neutral-200 border-neutral-300 dark:bg-neutral-900 dark:border-neutral-800 border text-amber-500 dark:text-amber-400 hover:opacity-90 transition active:scale-95 shadow-md flex items-center justify-center">
+                    <i id="theme-icon" class="fa-solid fa-sun text-xs"></i>
+                </button>
+
+                <!-- Sound Mute/Unmute Button (Placed directly BELOW the theme button) -->
+                <button id="sound-toggle-btn" onclick="toggleSound()" class="p-2 rounded-xl bg-neutral-200 border-neutral-300 dark:bg-neutral-900 dark:border-neutral-800 border text-slate-700 dark:text-slate-300 hover:opacity-90 transition active:scale-95 shadow-md flex items-center justify-center">
+                    <i id="sound-icon" class="fa-solid fa-volume-high text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Tab Switcher -->
+            <div class="flex gap-1 bg-slate-200 dark:bg-neutral-900/90 p-1 rounded-2xl border border-slate-300 dark:border-neutral-800 shadow-md">
+                <button id="tab-bcv" onclick="switchTab('bcv')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-white dark:bg-neutral-800 text-emerald-600 dark:text-emerald-400 shadow">
+                    <i class="fa-solid font-bold fa-dollar-sign text-xs"></i> BCV
+                </button>
+                <button id="tab-cashea" onclick="switchTab('cashea')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-200">
+                    <i class="fa-solid fa-layer-group text-xs text-amber-500 dark:text-yellow-400"></i> Cashea
+                </button>
+            </div>
+        </div>
+
+        <!-- BCV Rate Editable Button -->
+        <button onclick="openRateModal()" class="flex items-center gap-1.5 bg-slate-200 dark:bg-neutral-900 border border-slate-300 dark:border-neutral-800 hover:border-emerald-500/50 px-2.5 py-1.5 rounded-2xl transition active:scale-95 shadow-md">
+            <span id="rate-indicator" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-xs text-slate-600 dark:text-neutral-400 font-medium">Tasa:</span>
+            <span id="rate-display-btn" class="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">880.12</span>
+            <span class="text-[10px] text-slate-500 dark:text-neutral-400">Bs</span>
+            <i class="fa-solid fa-pen text-[10px] text-slate-400 dark:text-neutral-500 ml-0.5"></i>
+        </button>
+    </header>
+
+    <!-- MAIN VIEW 1: CALCULADORA BCV -->
+    <main id="view-bcv" class="flex-1 flex flex-col justify-between px-3 py-2 w-full max-h-[calc(100vh-60px)]">
+        
+        <!-- Display Screen -->
+        <div class="flex-1 flex flex-col justify-end items-end px-2 py-1 mb-2 space-y-1">
+            <!-- Operation Formula preview -->
+            <div id="bcv-expression" class="text-slate-500 dark:text-neutral-400 text-sm font-mono tracking-wide h-6 overflow-hidden text-right font-medium">
+                7
+            </div>
+
+            <!-- Primary Currency Input Display -->
+            <div class="flex items-baseline justify-end gap-1.5 w-full">
+                <span id="bcv-symbol" class="text-3xl font-light text-slate-400 dark:text-neutral-500 font-mono">$</span>
+                <span id="bcv-main-amount" class="text-5xl font-extrabold tracking-tight font-mono break-all text-right max-w-full text-slate-900 dark:text-white">
+                    7
+                </span>
+            </div>
+
+            <!-- Converted Secondary Currency Result Badge -->
+            <div class="pt-2">
+                <div id="bcv-badge-bg" class="bg-emerald-500 text-black px-4 py-2 rounded-2xl flex items-center gap-1.5 font-mono shadow-lg shadow-emerald-500/10 transition-all">
+                    <span id="bcv-badge-amount" class="text-xl font-black tracking-tight">6.160,84</span>
+                    <span id="bcv-badge-symbol" class="text-sm font-bold">Bs</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Keypad Grid for BCV -->
+        <div class="grid grid-cols-4 gap-2.5 w-full mb-3">
+            <!-- Row 1 -->
+            <button onclick="bcvClear()" class="btn-active h-16 rounded-2xl bg-red-100 dark:bg-red-950/70 text-red-700 dark:text-red-400 border border-red-200 dark:border-transparent font-bold text-2xl flex items-center justify-center shadow-sm">C</button>
+            <button onclick="bcvToggleSwap()" class="btn-active h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-transparent font-bold text-xl flex items-center justify-center shadow-sm">
+                <i class="fa-solid fa-right-left text-lg"></i>
+            </button>
+            <button onclick="bcvBackspace()" class="btn-active h-16 rounded-2xl bg-rose-100 dark:bg-indigo-950/60 text-rose-700 dark:text-red-400 border border-rose-200 dark:border-transparent font-bold text-xl flex items-center justify-center shadow-sm">
+                <i class="fa-solid fa-delete-left text-xl"></i>
+            </button>
+            <button onclick="bcvOperator('/')" class="btn-active h-16 rounded-2xl bg-purple-100 dark:bg-indigo-950 text-purple-900 dark:text-indigo-200 border border-purple-200 dark:border-transparent font-bold text-2xl flex items-center justify-center shadow-sm">÷</button>
+
+            <!-- Row 2 -->
+            <button onclick="bcvNum('7')" class="btn-active h-16 rounded-2xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-semibold text-2xl flex items-center justify-center shadow-sm">7</button>
+            <button onclick="bcvNum('8')" class="btn-active h-16 rounded-2xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-semibold text-2xl flex items-center justify-center shadow-sm">8</button>
+            <button onclick="bcvNum('9')" class="btn-active h-16 rounded-2xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-semibold text-2xl flex items-center justify-center shadow-sm">9</button>
+            <button onclick="bcvOperator('*')" class="btn-active h-16 rounded-2xl bg-purple-100 dark:bg-indigo-950 text-purple-900 dark:text-indigo-200 border border-purple-200 dark:border-transparent font-bold text-2xl flex items-center justify-center shadow-sm">×</button>
+
+            <!-- Row 3 -->
+            <button onclick="bcvNum('4')" class="btn-active h-16 rounded-2xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-semibold text-2xl flex items-center justify-center shadow-sm">4</button>
+            <button onclick="bcvNum('5')" class="btn-active h-16 rounded-2xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-semibold text-2xl flex items-center justify-center shadow-sm">5</button>
+            <button onclick="bcvNum('6')" class="btn-active h-16 rounded-2xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-semibold text-2xl flex items-center justify-center shadow-sm">6</button>
+            <button onclick="bcvOperator('-')" class="btn-active h-16 rounded-2xl bg-purple-100 dark:bg-indigo-950 text-purple-900 dark:text-indigo-200 border border-purple-200 dark:border-transparent font-bold text-2xl flex items-center justify-center shadow-sm">-</button>
+
+            <!-- Row 4 & 5 Combined Layout -->
+            <div class="col-span-3 grid grid-cols-3 gap-2.5">
+                <button onclick="bcvNum('1')" class="btn-active h-16 rounded-2xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-semibold text-2xl flex items-center justify-center shadow-sm">1</button>
+                <button onclick="bcvNum('2')" class="btn-active h-16 rounded-2xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-semibold text-2xl flex items-center justify-center shadow-sm">2</button>
+                <button onclick="bcvNum('3')" class="btn-active h-16 rounded-2xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-semibold text-2xl flex items-center justify-center shadow-sm">3</button>
+                <button onclick="bcvNum('0')" class="btn-active col-span-2 h-16 rounded-2xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-semibold text-2xl flex items-center justify-center shadow-sm">0</button>
+                <button onclick="bcvDecimal()" class="btn-active h-16 rounded-2xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-semibold text-2xl flex items-center justify-center shadow-sm">.</button>
+            </div>
+            
+            <button onclick="bcvEquals()" class="btn-active h-full row-span-2 rounded-2xl bg-blue-600 dark:bg-blue-700 hover:bg-blue-500 text-white font-bold text-3xl flex items-center justify-center shadow-lg shadow-blue-500/20">+</button>
+        </div>
+    </main>
+
+    <!-- MAIN VIEW 2: CALCULADORA CASHEA -->
+    <main id="view-cashea" class="hidden flex-1 flex flex-col justify-between px-3 py-2 w-full max-h-[calc(100vh-60px)] overflow-y-auto">
+        
+        <!-- Cashea Config & Results -->
+        <div class="space-y-2.5 my-auto">
+            <!-- Purchase Amount Box -->
+            <div class="bg-slate-100 dark:bg-neutral-900 p-3 rounded-2xl border border-slate-200 dark:border-neutral-800 space-y-1 shadow-sm">
+                <div class="flex justify-between items-center text-xs text-slate-600 dark:text-neutral-400 font-medium">
+                    <span>Monto de la Compra</span>
+                    <div class="flex bg-slate-200 dark:bg-neutral-800 p-0.5 rounded-lg text-[11px]">
+                        <button id="cashea-currency-usd" onclick="setCasheaCurrency('USD')" class="px-2 py-0.5 rounded-md font-bold bg-amber-400 dark:bg-yellow-500 text-slate-900 dark:text-black">USD</button>
+                        <button id="cashea-currency-bs" onclick="setCasheaCurrency('BS')" class="px-2 py-0.5 rounded-md font-bold text-slate-600 dark:text-neutral-400">Bs</button>
+                    </div>
+                </div>
+                <div class="flex items-baseline justify-between pt-1">
+                    <span id="cashea-symbol" class="text-2xl text-amber-600 dark:text-yellow-500 font-extrabold">$</span>
+                    <span id="cashea-input-amount" class="text-4xl font-black font-mono tracking-tight text-slate-900 dark:text-white">100</span>
+                </div>
+            </div>
+
+            <!-- Level / Mode Selector -->
+            <div class="bg-slate-100 dark:bg-neutral-900 p-2.5 rounded-2xl border border-slate-200 dark:border-neutral-800 space-y-2 shadow-sm">
+                <label class="text-xs text-slate-600 dark:text-neutral-400 font-medium flex justify-between">
+                    <span>Pago Inicial</span>
+                    <span id="cashea-level-label" class="text-amber-600 dark:text-yellow-400 font-bold">50% Inicial</span>
+                </label>
+
+                <!-- Initial Percentage Presets (20%, 25%, 40%, 50%, 60%) -->
+                <div class="grid grid-cols-5 gap-1">
+                    <button onclick="setCasheaPreset(0.20, '20% Inicial')" class="cashea-btn border border-slate-300 dark:border-neutral-800 bg-slate-200 dark:bg-neutral-800 text-slate-800 dark:text-neutral-200 py-1.5 rounded-xl text-xs font-bold active:scale-95 transition">20%</button>
+                    <button onclick="setCasheaPreset(0.25, '25% Inicial')" class="cashea-btn border border-slate-300 dark:border-neutral-800 bg-slate-200 dark:bg-neutral-800 text-slate-800 dark:text-neutral-200 py-1.5 rounded-xl text-xs font-bold active:scale-95 transition">25%</button>
+                    <button onclick="setCasheaPreset(0.40, '40% Inicial')" class="cashea-btn border border-slate-300 dark:border-neutral-800 bg-slate-200 dark:bg-neutral-800 text-slate-800 dark:text-neutral-200 py-1.5 rounded-xl text-xs font-bold active:scale-95 transition">40%</button>
+                    <button onclick="setCasheaPreset(0.50, '50% Inicial')" class="cashea-btn border border-amber-400/80 dark:border-yellow-500/50 bg-amber-200 dark:bg-yellow-500/20 text-amber-900 dark:text-yellow-300 py-1.5 rounded-xl text-xs font-bold active:scale-95 transition">50%</button>
+                    <button onclick="setCasheaPreset(0.60, '60% Inicial')" class="cashea-btn border border-slate-300 dark:border-neutral-800 bg-slate-200 dark:bg-neutral-800 text-slate-800 dark:text-neutral-200 py-1.5 rounded-xl text-xs font-bold active:scale-95 transition">60%</button>
+                </div>
+
+                <!-- Cuotas Count Selector (Includes 1 cuota option) -->
+                <div class="pt-1 flex items-center justify-between text-xs">
+                    <span class="text-slate-600 dark:text-neutral-400 font-medium">Número de Cuotas:</span>
+                    <div class="flex gap-1">
+                        <button onclick="setCasheaCuotas(1)" id="cuota-1" class="px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-neutral-800 text-slate-800 dark:text-neutral-300 font-bold transition">1</button>
+                        <button onclick="setCasheaCuotas(3)" id="cuota-3" class="px-2.5 py-1 rounded-lg bg-amber-400 dark:bg-yellow-500 text-slate-950 dark:text-black font-bold transition">3</button>
+                        <button onclick="setCasheaCuotas(6)" id="cuota-6" class="px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-neutral-800 text-slate-800 dark:text-neutral-300 font-bold transition">6</button>
+                        <button onclick="setCasheaCuotas(9)" id="cuota-9" class="px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-neutral-800 text-slate-800 dark:text-neutral-300 font-bold transition">9</button>
+                        <button onclick="setCasheaCuotas(12)" id="cuota-12" class="px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-neutral-800 text-slate-800 dark:text-neutral-300 font-bold transition">12</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result Breakdown Card -->
+            <div class="bg-amber-500/10 dark:from-neutral-900 dark:to-neutral-950 p-3.5 rounded-2xl border border-amber-300 dark:border-yellow-500/30 shadow-md space-y-2.5">
+                <!-- Initial Payment (Pago Inicial) -->
+                <div class="flex justify-between items-center pb-2 border-b border-amber-200 dark:border-neutral-800">
+                    <div>
+                        <div class="text-xs text-slate-700 dark:text-neutral-400 font-medium">Pago Inicial (Hoy)</div>
+                        <div class="text-[10px] text-slate-500 dark:text-neutral-500" id="cashea-initial-percent">50% del total</div>
+                    </div>
+                    <div class="text-right">
+                        <div id="cashea-initial-usd" class="text-lg font-black text-amber-700 dark:text-yellow-400 font-mono">$50.00</div>
+                        <div id="cashea-initial-bs" class="text-xs text-emerald-700 dark:text-emerald-400 font-mono">44.006,00 Bs</div>
+                    </div>
+                </div>
+
+                <!-- Per Installment (Cuotas) -->
+                <div class="flex justify-between items-center">
+                    <div>
+                        <div class="text-xs text-slate-700 dark:text-neutral-400 font-medium" id="cashea-cuotas-title">
+                            <span id="cashea-cuotas-count">3</span> Cuotas C/U (c/14 días)
+                        </div>
+                        <div class="text-[10px] text-slate-500 dark:text-neutral-500" id="cashea-financed-amount">Financiado: $50.00</div>
+                    </div>
+                    <div class="text-right">
+                        <div id="cashea-cuotas-usd" class="text-lg font-black font-mono text-slate-900 dark:text-white">$16.67</div>
+                        <div id="cashea-cuotas-bs" class="text-xs text-emerald-700 dark:text-emerald-400 font-mono">14.668,67 Bs</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Numpad for Cashea Input -->
+        <div class="grid grid-cols-3 gap-2 mt-2 mb-2">
+            <button onclick="casheaNum('1')" class="btn-active h-12 rounded-xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-bold text-xl shadow-sm">1</button>
+            <button onclick="casheaNum('2')" class="btn-active h-12 rounded-xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-bold text-xl shadow-sm">2</button>
+            <button onclick="casheaNum('3')" class="btn-active h-12 rounded-xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-bold text-xl shadow-sm">3</button>
+            <button onclick="casheaNum('4')" class="btn-active h-12 rounded-xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-bold text-xl shadow-sm">4</button>
+            <button onclick="casheaNum('5')" class="btn-active h-12 rounded-xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-bold text-xl shadow-sm">5</button>
+            <button onclick="casheaNum('6')" class="btn-active h-12 rounded-xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-bold text-xl shadow-sm">6</button>
+            <button onclick="casheaNum('7')" class="btn-active h-12 rounded-xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-bold text-xl shadow-sm">7</button>
+            <button onclick="casheaNum('8')" class="btn-active h-12 rounded-xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-bold text-xl shadow-sm">8</button>
+            <button onclick="casheaNum('9')" class="btn-active h-12 rounded-xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-bold text-xl shadow-sm">9</button>
+            <button onclick="casheaClear()" class="btn-active h-12 rounded-xl bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-400 border border-red-200 dark:border-transparent font-bold text-lg shadow-sm">C</button>
+            <button onclick="casheaNum('0')" class="btn-active h-12 rounded-xl bg-slate-100 dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 border border-slate-200 dark:border-transparent font-bold text-xl shadow-sm">0</button>
+            <button onclick="casheaBackspace()" class="btn-active h-12 rounded-xl bg-amber-100 dark:bg-neutral-800 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-transparent font-bold text-lg shadow-sm"><i class="fa-solid fa-delete-left"></i></button>
+        </div>
+    </main>
+
+    <!-- Modal for Editing BCV Rate & Auto Sync -->
+    <div id="rate-modal" class="hidden fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 w-full max-w-xs rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-neutral-100 flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-emerald-600 dark:text-emerald-400"></i> Ajustar Tasa BCV
+                </h3>
+                <button onclick="closeRateModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <div>
+                <label class="text-xs text-slate-500 dark:text-neutral-400 block mb-1">Tasa Oficial (Bs por USD)</label>
+                <div class="relative">
+                    <input type="number" id="rate-input" step="0.01" class="w-full bg-slate-100 dark:bg-neutral-950 border border-slate-300 dark:border-neutral-700 rounded-xl px-3 py-2.5 text-xl font-mono text-emerald-700 dark:text-emerald-400 font-bold focus:outline-none focus:border-emerald-500" placeholder="880.12">
+                    <span class="absolute right-3 top-3 text-xs text-slate-400 dark:text-neutral-500 font-bold">Bs</span>
+                </div>
+            </div>
+
+            <!-- Fetch BCV Online Status Message -->
+            <div id="fetch-status-msg" class="text-[11px] text-slate-500 dark:text-neutral-400 flex items-center justify-between">
+                <span>Estado: <span id="status-text" class="text-emerald-600 dark:text-emerald-400 font-semibold">Listo</span></span>
+                <button onclick="fetchBCVRate(true)" class="text-xs text-amber-600 dark:text-yellow-400 hover:underline flex items-center gap-1 font-semibold">
+                    <i class="fa-solid fa-rotate text-[10px]"></i> Sincronizar
+                </button>
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button onclick="closeRateModal()" class="flex-1 py-2.5 rounded-xl bg-slate-200 dark:bg-neutral-800 text-slate-700 dark:text-neutral-300 font-bold text-xs">Cancelar</button>
+                <button onclick="saveRate()" class="flex-1 py-2.5 rounded-xl bg-emerald-500 text-white dark:text-black font-bold text-xs shadow-lg shadow-emerald-500/20">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // State variables
+        let bcvRate = 880.12;
+        let currentMode = 'bcv';
+        let isDarkMode = true;
+        let isSoundMuted = localStorage.getItem('sound_muted') === 'true';
+
+        // Web Audio API Context
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) {
+                    audioCtx = new AudioContextClass();
+                }
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        // Play Synthesized Sound Effects
+        function playSound(type) {
+            if (isSoundMuted) return;
+            try {
+                const ctx = getAudioContext();
+                if (!ctx) return;
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                const now = ctx.currentTime;
+
+                if (type === 'num') {
+                    // Soft, subtle click tone for numbers
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(650, now);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+                    osc.start(now);
+                    osc.stop(now + 0.04);
+                } else if (type === 'op') {
+                    // Harmonic higher beep for operators
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, now);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+                    osc.start(now);
+                    osc.stop(now + 0.06);
+                } else if (type === 'clear') {
+                    // Descending quick pop for clear / backspace
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(520, now);
+                    osc.frequency.exponentialRampToValueAtTime(220, now + 0.08);
+                    gain.gain.setValueAtTime(0.14, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'toggle') {
+                    // Smooth soft UI chime
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(750, now);
+                    osc.frequency.setValueAtTime(950, now + 0.03);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+                    osc.start(now);
+                    osc.stop(now + 0.07);
+                }
+            } catch (e) {
+                console.warn("Audio Context playback error:", e);
+            }
+        }
+
+        // Toggle Sound Mute/Unmute
+        function toggleSound() {
+            isSoundMuted = !isSoundMuted;
+            localStorage.setItem('sound_muted', isSoundMuted ? 'true' : 'false');
+            updateSoundIcon();
+            if (!isSoundMuted) {
+                playSound('toggle');
+            }
+        }
+
+        function updateSoundIcon() {
+            const icon = document.getElementById('sound-icon');
+            const btn = document.getElementById('sound-toggle-btn');
+            if (isSoundMuted) {
+                icon.className = 'fa-solid fa-volume-xmark text-xs text-red-500';
+                btn.className = 'p-2 rounded-xl bg-neutral-200 border-neutral-300 dark:bg-neutral-900 dark:border-neutral-800 border text-red-500 hover:opacity-90 transition active:scale-95 shadow-md flex items-center justify-center';
+            } else {
+                icon.className = 'fa-solid fa-volume-high text-xs text-emerald-600 dark:text-emerald-400';
+                btn.className = 'p-2 rounded-xl bg-neutral-200 border-neutral-300 dark:bg-neutral-900 dark:border-neutral-800 border text-emerald-600 dark:text-emerald-400 hover:opacity-90 transition active:scale-95 shadow-md flex items-center justify-center';
+            }
+        }
+
+        // BCV Calculator State
+        let bcvInput = "7";
+        let bcvExpression = "";
+        let isUSDToBs = true; // true = USD -> Bs, false = Bs -> USD
+        let lastResultCalculated = false;
+
+        // Cashea Calculator State
+        let casheaAmountStr = "100";
+        let casheaCurrency = "USD"; // USD or BS
+        let casheaInitialPct = 0.50;
+        let casheaCuotasNum = 3;
+
+        // Number Formatting Helpers
+        function formatNumber(num, decimals = 2) {
+            if (isNaN(num)) return "0,00";
+            return new Intl.NumberFormat('de-DE', {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            }).format(num);
+        }
+
+        // Theme Toggle Functionality
+        function toggleTheme() {
+            playSound('toggle');
+            isDarkMode = !isDarkMode;
+            const body = document.body;
+            const themeIcon = document.getElementById('theme-icon');
+
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark');
+                body.style.backgroundColor = '#000000';
+                body.style.color = '#ffffff';
+                themeIcon.className = 'fa-solid fa-sun text-sm';
+            } else {
+                document.documentElement.classList.remove('dark');
+                body.style.backgroundColor = '#f8fafc';
+                body.style.color = '#0f172a';
+                themeIcon.className = 'fa-solid fa-moon text-sm';
+            }
+
+            // Re-apply current preset buttons state for light/dark theme styles
+            setCasheaPreset(casheaInitialPct, `${Math.round(casheaInitialPct * 100)}% Inicial`, false);
+            updateCuotaButtonsUI();
+            updateCasheaUI();
+            updateBCVUI();
+        }
+
+        // Fetch official BCV rate from available API endpoints
+        async function fetchBCVRate(manual = false) {
+            if (manual) playSound('toggle');
+            const statusText = document.getElementById('status-text');
+            if (statusText) statusText.textContent = "Obteniendo...";
+
+            try {
+                let res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
+                if (res.ok) {
+                    let data = await res.json();
+                    if (data && data.promedio) {
+                        bcvRate = parseFloat(data.promedio);
+                        updateRateDisplay(true);
+                        if (statusText) statusText.textContent = "Actualizado";
+                        return;
+                    }
+                }
+
+                let backupRes = await fetch('https://rates.dolarvzla.com/bcv/current.json');
+                if (backupRes.ok) {
+                    let backupData = await backupRes.json();
+                    if (backupData && backupData.usd) {
+                        bcvRate = parseFloat(backupData.usd);
+                        updateRateDisplay(true);
+                        if (statusText) statusText.textContent = "Actualizado";
+                        return;
+                    }
+                }
+                
+                if (statusText) statusText.textContent = "Usando local";
+            } catch (err) {
+                console.warn("Error fetching online BCV rate, fallback to current rate:", err);
+                if (statusText) statusText.textContent = "Usando local";
+            }
+        }
+
+        function updateRateDisplay(isOnline = false) {
+            document.getElementById('rate-display-btn').textContent = formatNumber(bcvRate, 2);
+            const indicator = document.getElementById('rate-indicator');
+            if (indicator) {
+                indicator.className = isOnline ? "w-2 h-2 rounded-full bg-emerald-500 animate-pulse" : "w-2 h-2 rounded-full bg-amber-500";
+            }
+            updateBCVUI();
+            updateCasheaUI();
+        }
+
+        // Tab Switching
+        function switchTab(tab) {
+            playSound('toggle');
+            currentMode = tab;
+            const btnBcv = document.getElementById('tab-bcv');
+            const btnCashea = document.getElementById('tab-cashea');
+            const viewBcv = document.getElementById('view-bcv');
+            const viewCashea = document.getElementById('view-cashea');
+
+            if (tab === 'bcv') {
+                btnBcv.className = "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-white dark:bg-neutral-800 text-emerald-600 dark:text-emerald-400 shadow";
+                btnCashea.className = "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-200";
+                viewBcv.classList.remove('hidden');
+                viewCashea.classList.add('hidden');
+                updateBCVUI();
+            } else {
+                btnCashea.className = "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-white dark:bg-neutral-800 text-amber-600 dark:text-yellow-400 shadow";
+                btnBcv.className = "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-200";
+                viewCashea.classList.remove('hidden');
+                viewBcv.classList.add('hidden');
+                updateCasheaUI();
+            }
+        }
+
+        // --- BCV CALCULATOR LOGIC ---
+        function bcvNum(digit) {
+            playSound('num');
+            if (lastResultCalculated) {
+                bcvInput = digit;
+                lastResultCalculated = false;
+            } else {
+                if (bcvInput === "0") bcvInput = digit;
+                else bcvInput += digit;
+            }
+            updateBCVUI();
+        }
+
+        function bcvDecimal() {
+            playSound('num');
+            if (lastResultCalculated) {
+                bcvInput = "0.";
+                lastResultCalculated = false;
+            } else if (!bcvInput.includes('.')) {
+                bcvInput += '.';
+            }
+            updateBCVUI();
+        }
+
+        function bcvClear() {
+            playSound('clear');
+            bcvInput = "0";
+            bcvExpression = "";
+            lastResultCalculated = false;
+            updateBCVUI();
+        }
+
+        function bcvBackspace() {
+            playSound('clear');
+            if (lastResultCalculated) {
+                bcvInput = "0";
+                lastResultCalculated = false;
+            } else {
+                bcvInput = bcvInput.slice(0, -1);
+                if (bcvInput === "" || bcvInput === "-") bcvInput = "0";
+            }
+            updateBCVUI();
+        }
+
+        function bcvOperator(op) {
+            playSound('op');
+            if (lastResultCalculated) {
+                bcvExpression = bcvInput + " " + op + " ";
+                bcvInput = "0";
+                lastResultCalculated = false;
+            } else {
+                bcvExpression += bcvInput + " " + op + " ";
+                bcvInput = "0";
+            }
+            updateBCVUI();
+        }
+
+        function bcvEquals() {
+            playSound('op');
+            if (!bcvExpression) return;
+            try {
+                let fullExpr = bcvExpression + bcvInput;
+                let val = Function('"use strict";return (' + fullExpr + ')')();
+                bcvInput = String(Number(val.toFixed(2)));
+                bcvExpression = "";
+                lastResultCalculated = true;
+            } catch(e) {
+                bcvInput = "Error";
+            }
+            updateBCVUI();
+        }
+
+        function bcvToggleSwap() {
+            playSound('toggle');
+            isUSDToBs = !isUSDToBs;
+            updateBCVUI();
+        }
+
+        function updateBCVUI() {
+            const symbolElem = document.getElementById('bcv-symbol');
+            const mainAmountElem = document.getElementById('bcv-main-amount');
+            const badgeAmountElem = document.getElementById('bcv-badge-amount');
+            const badgeSymbolElem = document.getElementById('bcv-badge-symbol');
+            const badgeBgElem = document.getElementById('bcv-badge-bg');
+            const exprElem = document.getElementById('bcv-expression');
+
+            exprElem.textContent = bcvExpression;
+
+            let numericVal = parseFloat(bcvInput) || 0;
+
+            if (isUSDToBs) {
+                symbolElem.textContent = "$";
+                mainAmountElem.textContent = bcvInput.replace('.', ',');
+                
+                let convertedBs = numericVal * bcvRate;
+                badgeAmountElem.textContent = formatNumber(convertedBs);
+                badgeSymbolElem.textContent = "Bs";
+                badgeBgElem.className = "bg-emerald-500 text-black px-4 py-2 rounded-2xl flex items-center gap-1.5 font-mono shadow-lg shadow-emerald-500/10 transition-all font-bold";
+            } else {
+                symbolElem.textContent = "Bs";
+                mainAmountElem.textContent = bcvInput.replace('.', ',');
+
+                let convertedUSD = numericVal / (bcvRate || 1);
+                badgeAmountElem.textContent = "$" + formatNumber(convertedUSD);
+                badgeSymbolElem.textContent = "USD";
+                badgeBgElem.className = "bg-blue-600 text-white px-4 py-2 rounded-2xl flex items-center gap-1.5 font-mono shadow-lg shadow-blue-600/10 transition-all font-bold";
+            }
+        }
+
+        // --- CASHEA CALCULATOR LOGIC ---
+        function setCasheaCurrency(curr) {
+            playSound('toggle');
+            casheaCurrency = curr;
+            document.getElementById('cashea-currency-usd').className = curr === 'USD' ? "px-2 py-0.5 rounded-md font-bold bg-amber-400 dark:bg-yellow-500 text-slate-900 dark:text-black shadow-sm" : "px-2 py-0.5 rounded-md font-bold text-slate-600 dark:text-neutral-400";
+            document.getElementById('cashea-currency-bs').className = curr === 'BS' ? "px-2 py-0.5 rounded-md font-bold bg-amber-400 dark:bg-yellow-500 text-slate-900 dark:text-black shadow-sm" : "px-2 py-0.5 rounded-md font-bold text-slate-600 dark:text-neutral-400";
+            document.getElementById('cashea-symbol').textContent = curr === 'USD' ? '$' : 'Bs';
+            updateCasheaUI();
+        }
+
+        function setCasheaPreset(pct, label, playSnd = true) {
+            if (playSnd) playSound('toggle');
+            casheaInitialPct = pct;
+            document.getElementById('cashea-level-label').textContent = label;
+            
+            // Highlight percentage buttons with light mode pastel support
+            const btns = document.querySelectorAll('.cashea-btn');
+            btns.forEach(btn => {
+                if (btn.textContent.includes(Math.round(pct * 100) + '%')) {
+                    btn.className = "cashea-btn border border-amber-400/80 dark:border-yellow-500/50 bg-amber-200 dark:bg-yellow-500/20 text-amber-900 dark:text-yellow-300 py-1.5 rounded-xl text-xs font-bold active:scale-95 transition shadow-sm";
+                } else {
+                    btn.className = "cashea-btn border border-slate-300 dark:border-neutral-800 bg-slate-200 dark:bg-neutral-800 text-slate-800 dark:text-neutral-200 py-1.5 rounded-xl text-xs font-bold active:scale-95 transition";
+                }
+            });
+            updateCasheaUI();
+        }
+
+        function setCasheaCuotas(n) {
+            playSound('toggle');
+            casheaCuotasNum = n;
+            updateCuotaButtonsUI();
+            updateCasheaUI();
+        }
+
+        function updateCuotaButtonsUI() {
+            [1, 3, 6, 9, 12].forEach(n => {
+                const el = document.getElementById(`cuota-${n}`);
+                if (el) {
+                    if (n === casheaCuotasNum) {
+                        el.className = "px-2.5 py-1 rounded-lg bg-amber-400 dark:bg-yellow-500 text-slate-950 dark:text-black font-bold transition shadow-sm";
+                    } else {
+                        el.className = "px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-neutral-800 text-slate-800 dark:text-neutral-300 font-bold transition";
+                    }
+                }
+            });
+        }
+
+        function casheaNum(digit) {
+            playSound('num');
+            if (casheaAmountStr === "0") casheaAmountStr = digit;
+            else casheaAmountStr += digit;
+            updateCasheaUI();
+        }
+
+        function casheaClear() {
+            playSound('clear');
+            casheaAmountStr = "0";
+            updateCasheaUI();
+        }
+
+        function casheaBackspace() {
+            playSound('clear');
+            casheaAmountStr = casheaAmountStr.slice(0, -1);
+            if (casheaAmountStr === "") casheaAmountStr = "0";
+            updateCasheaUI();
+        }
+
+        function updateCasheaUI() {
+            document.getElementById('cashea-input-amount').textContent = casheaAmountStr;
+
+            let totalVal = parseFloat(casheaAmountStr) || 0;
+            let totalUSD = casheaCurrency === 'USD' ? totalVal : (totalVal / bcvRate);
+
+            // Calculations
+            let initialUSD = totalUSD * casheaInitialPct;
+            let remainingUSD = totalUSD - initialUSD;
+            let cuotasUSD = casheaCuotasNum > 0 ? (remainingUSD / casheaCuotasNum) : 0;
+
+            let initialBs = initialUSD * bcvRate;
+            let cuotasBs = cuotasUSD * bcvRate;
+
+            // DOM Updates
+            document.getElementById('cashea-initial-percent').textContent = `${Math.round(casheaInitialPct * 100)}% del total`;
+            document.getElementById('cashea-initial-usd').textContent = `$${formatNumber(initialUSD)}`;
+            document.getElementById('cashea-initial-bs').textContent = `${formatNumber(initialBs)} Bs`;
+
+            const cuotaTitleElem = document.getElementById('cashea-cuotas-title');
+            if (casheaCuotasNum === 1) {
+                cuotaTitleElem.innerHTML = `<span>1</span> Cuota Única (a los 14 días)`;
+            } else {
+                cuotaTitleElem.innerHTML = `<span id="cashea-cuotas-count">${casheaCuotasNum}</span> Cuotas C/U (c/14 días)`;
+            }
+
+            document.getElementById('cashea-financed-amount').textContent = `Financiado: $${formatNumber(remainingUSD)}`;
+            document.getElementById('cashea-cuotas-usd').textContent = `$${formatNumber(cuotasUSD)}`;
+            document.getElementById('cashea-cuotas-bs').textContent = `${formatNumber(cuotasBs)} Bs`;
+        }
+
+        // --- RATE MODAL LOGIC ---
+        function openRateModal() {
+            playSound('toggle');
+            document.getElementById('rate-input').value = bcvRate;
+            document.getElementById('rate-modal').classList.remove('hidden');
+        }
+
+        function closeRateModal() {
+            playSound('toggle');
+            document.getElementById('rate-modal').classList.add('hidden');
+        }
+
+        function saveRate() {
+            playSound('toggle');
+            const inputVal = parseFloat(document.getElementById('rate-input').value);
+            if (inputVal && inputVal > 0) {
+                bcvRate = inputVal;
+                updateRateDisplay(false);
+            }
+            closeRateModal();
+        }
+
+        // Initialize display on startup, audio unlock listener, & auto fetch
+        window.onload = function() {
+            updateSoundIcon();
+            updateBCVUI();
+            updateCasheaUI();
+            fetchBCVRate();
+
+            // Unlock Web Audio API on first mobile user interaction
+            const unlockAudio = () => {
+                getAudioContext();
+                document.removeEventListener('click', unlockAudio);
+                document.removeEventListener('touchstart', unlockAudio);
+            };
+            document.addEventListener('click', unlockAudio);
+            document.addEventListener('touchstart', unlockAudio);
+        };
+    </script>
+</body>
+</html>
